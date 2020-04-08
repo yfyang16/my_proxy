@@ -10,8 +10,6 @@
 
 int main(int argc, char **argv)
 {
-    // printf("%s", user_agent_hdr);
-    // return 0;
 
     int listenfd, *connfdp;
     char hostname[MAXLINE], port[MAXLINE];
@@ -34,14 +32,8 @@ int main(int argc, char **argv)
 	Getnameinfo((SA *) &clientaddr, clientlen, hostname, MAXLINE, port, MAXLINE, 0);
 	printf("Accepted connection from (%s, %s)\n", hostname, port);
 	pthread_create(tidp, NULL, thread, connfdp);  
-	//pthread_detach(*tidp);
 	printf("After creating threads\n");                       
     }
-}
-
-void *test_thread(void *vargp) {
-	// Pthread_detach(pthread_self());
-	printf("We are good\n");
 }
 
 
@@ -51,10 +43,9 @@ void *test_thread(void *vargp) {
  *  response to the client.
  */
 void *thread(void *vargp) {
-	printf("Successfully create a new thread\n");
-	// Pthread_detach(pthread_self());
 	int connfd = *((int*)vargp);
-	printf("Successfully get the connfd: %d\n", connfd);
+	// printf("Successfully get the connfd: %d\n", connfd);
+
 	// detach this thread in order to let itself reclaim the resources
 	Pthread_detach(pthread_self());
 
@@ -66,7 +57,7 @@ void *thread(void *vargp) {
 
     // close this file descriptor
     Close(connfd);
-    printf("=============End of one user================\n\n");
+    // printf("=============End of one user================\n\n");
 }
 
 /*
@@ -76,7 +67,6 @@ void *thread(void *vargp) {
  *     the response to the connfd.
  */
 void doit(int fd) {
-    //printf("Successfully in the doit function\n");
     ReqLine request_line;
     ReqHeader headers[20];
     int num_hdrs, line_size, connfd;
@@ -204,7 +194,6 @@ int parse_hdrs(rio_t *riop, ReqHeader *hdrs, char *buf) {
 }
 
 int forward_request(ReqLine *rql, ReqHeader *hdrs, int num_hdrs) {
-	printf("In forward_request function\n");
 	rio_t rio;
 	char buf[MAXLINE], *bp = buf;
 	int req_size, tmp_len, clientfd;
@@ -220,7 +209,7 @@ int forward_request(ReqLine *rql, ReqHeader *hdrs, int num_hdrs) {
 	req_size += tmp_len;
 
 
-	// Check if "Host" and "User-Agent" exists
+	// Check if "Host", "User-Agent", "Connection" and "Proxy-Connection" exists
 	for (int i=0;i<num_hdrs;i++) {
 	    if (!strcmp(hdrs[i].name, "Host")) {
 	        host_exist = 1;
