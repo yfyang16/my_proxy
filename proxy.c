@@ -27,12 +27,11 @@ int main(int argc, char **argv)
     while (1) {
     	tidp = Malloc(sizeof(pthread_t));
     	connfdp = Malloc(sizeof(int));
-	clientlen = sizeof(clientaddr);
-	*connfdp = Accept(listenfd, (SA *) &clientaddr, &clientlen); 
-	Getnameinfo((SA *) &clientaddr, clientlen, hostname, MAXLINE, port, MAXLINE, 0);
-	printf("Accepted connection from (%s, %s)\n", hostname, port);
-	pthread_create(tidp, NULL, thread, connfdp);  
-	printf("After creating threads\n");                       
+	    clientlen = sizeof(clientaddr);
+	    *connfdp = Accept(listenfd, (SA *) &clientaddr, &clientlen); 
+	    Getnameinfo((SA *) &clientaddr, clientlen, hostname, MAXLINE, port, MAXLINE, 0);
+	    printf("Accepted connection from (%s, %s)\n", hostname, port);
+	    pthread_create(tidp, NULL, thread, connfdp);  
     }
 }
 
@@ -121,7 +120,6 @@ void parse_request(int fd, ReqLine *rql, ReqHeader *hdrs, int *num_hdrs) {
 }
 
 void parse_uri(char *uri, ReqLine *rql) {
-        printf("In parse_uri function\n");
 	char c;
 	int i = 0, pad=0;
 	printf("URI string: %s\n", uri);
@@ -154,9 +152,9 @@ void parse_uri(char *uri, ReqLine *rql) {
 	    pad = i;
 	    c = uri[i];
 	    while ((c != '/')) {
-		rql->port[i - pad] = c;
-		i ++;
-		c = uri[i];
+		    rql->port[i - pad] = c;
+		    i ++;
+		    c = uri[i];
 	    }
 	}
 	rql->port[i-pad] = '\0';
@@ -197,7 +195,7 @@ int forward_request(ReqLine *rql, ReqHeader *hdrs, int num_hdrs) {
 	rio_t rio;
 	char buf[MAXLINE], *bp = buf;
 	int req_size, tmp_len, clientfd;
-        short host_exist = 0, userAgent_exist = 0, conn_exist = 0, pconn_exist = 0;
+    short host_exist = 0, userAgent_exist = 0, conn_exist = 0, pconn_exist = 0;
 
 	printf("Before open fd: host(%s), port(%s)\n", rql->host,rql->port);
 	clientfd = Open_clientfd(rql->host, rql->port);
@@ -216,18 +214,18 @@ int forward_request(ReqLine *rql, ReqHeader *hdrs, int num_hdrs) {
 	    }
 
 	    if (!strcmp(hdrs[i].name, "User-Agent")) {
-                strcpy(hdrs[i].value, user_agent_hdr);
-		userAgent_exist = 1;
-            }
+            strcpy(hdrs[i].value, user_agent_hdr);
+		    userAgent_exist = 1;
+        }
 
 	    if (!strcmp(hdrs[i].name, "Connection")) {
 	        sprintf(hdrs[i].value, "close");
-		conn_exist = 1;
+		    conn_exist = 1;
 	    }
 
 	    if (!strcmp(hdrs[i].name, "Proxy-Connection")) {
 	        sprintf(hdrs[i].value, "close");
-		pconn_exist = 1;
+		    pconn_exist = 1;
 	    }
 	}
 	if (host_exist == 0) {
@@ -237,29 +235,29 @@ int forward_request(ReqLine *rql, ReqHeader *hdrs, int num_hdrs) {
 	}
 	if (userAgent_exist == 0) {
 	    sprintf(hdrs[num_hdrs].name, "User-Agent");
-            strcpy(hdrs[num_hdrs].value, user_agent_hdr);
-            num_hdrs ++;
+        strcpy(hdrs[num_hdrs].value, user_agent_hdr);
+        num_hdrs ++;
 	}
 	for (int i=0;i<num_hdrs;i++) {
 
-            sprintf(bp, "%s: %s\r\n", hdrs[i].name, hdrs[i].value);
-            tmp_len = (strlen(hdrs[i].name) + strlen(hdrs[i].value) + 4);
-            bp += tmp_len;
-            req_size += tmp_len;
-        }
+        sprintf(bp, "%s: %s\r\n", hdrs[i].name, hdrs[i].value);
+        tmp_len = (strlen(hdrs[i].name) + strlen(hdrs[i].value) + 4);
+        bp += tmp_len;
+        req_size += tmp_len;
+    }
 
 
-        if (conn_exist == 0) {
+    if (conn_exist == 0) {
 	    sprintf(bp, "Connection: close\r\n");
 	    bp += 17;
 	    req_size += 17;
 	}
 
 	if (pconn_exist == 0) {
-            sprintf(bp, "Proxy-Connection: close\r\n");
-            bp += 23;
-            req_size += 23;
-        }
+        sprintf(bp, "Proxy-Connection: close\r\n");
+        bp += 23;
+        req_size += 23;
+    }
 
 	sprintf(bp, "\r\n");
 	req_size += 2;
