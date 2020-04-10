@@ -5,13 +5,14 @@
  *   This lab is to construct an proxy which could handle 
  *   multiple requests and cache web objects.
  */
-
+#include <stdio.h>
 #include "proxy.h"
 
+WebCache myCache;
 int main(int argc, char **argv)
 {
 
-    int listenfd, *connfdp;
+    int listenfd, *connfdp, rs;
     char hostname[MAXLINE], port[MAXLINE];
     socklen_t clientlen;
     struct sockaddr_storage clientaddr;
@@ -22,6 +23,12 @@ int main(int argc, char **argv)
         fprintf(stderr, "usage: %s <port>\n", argv[0]);
         exit(1);
     }
+
+    list_init(&myCache.head);
+    myCache.writer_exist = 0;
+    rs = sem_init(&myCache.sem, 0, 1);
+    printf("semaphore created: %d\n", rs);
+
 
     listenfd = Open_listenfd(argv[1]);
     while (1) {
@@ -69,6 +76,7 @@ void doit(int fd) {
     ReqLine request_line;
     ReqHeader headers[20];
     int num_hdrs, line_size, connfd;
+    int cache_exist = 0, obj_size = 0;
     rio_t rio;
     char buf[MAXLINE];
 
@@ -77,15 +85,21 @@ void doit(int fd) {
 
 
     // If in cache, directly copy the response to fd and return
-    // TODO:
+    while (myCache.writer_exist == 1);
+    cache_exist = find_cache("GET", &request_line, fd, &myCache);
+    
 
+    if (!cache_exist) {
+	    // If not in cache, forward the request to server
+	    connfd = forward_request(&request_line, headers, num_hdrs);
+	    Rio_readinitb(&rio, connfd);
+	    while(line_size = Rio_readlineb(&rio, buf, MAXLINE)) {
+	        Rio_writen(fd, buf, line_size);
+	        obj_size += line_size;
+	    }
 
-    // If not in cache, forward the request to server
-    connfd = forward_request(&request_line, headers, num_hdrs);
-    Rio_readinitb(&rio, connfd);
-    while(line_size = Rio_readlineb(&rio, buf, MAXLINE)) {
-        Rio_writen(fd, buf, line_size);
-    }
+	    write_into_cache(obj_size, connfd, "GET", &request_line, &myCache);
+	}
 
     Close(connfd);
 
@@ -93,7 +107,7 @@ void doit(int fd) {
 }
 
 void parse_request(int fd, ReqLine *rql, ReqHeader *hdrs, int *num_hdrs) {
-    printf("In the parse_request function\n");
+    // printf("In the parse_request function\n");
     rio_t rio;
     int rn = 0;
     char method[10], uri[MAXLINE], version[32], buf[MAXLINE];
@@ -108,9 +122,9 @@ void parse_request(int fd, ReqLine *rql, ReqHeader *hdrs, int *num_hdrs) {
         exit(0);
     }
     buf[rn+1] = '\0';
-    printf("Get the request line\n");
+    // printf("Get the request line\n");
     printf("See the buf: %s\n", buf);
-    //parse request line (GET http://www.abcd.com[:80]/path_str HTTP/1.1)
+    // parse request line (GET http://www.abcd.com[:80]/path_str HTTP/1.1)
     sscanf(buf, "%s %s %s", method, uri, version);
     printf("Request Line:%s %s %s\n", method, uri, version);
     parse_uri(uri, rql);
@@ -142,7 +156,7 @@ void parse_uri(char *uri, ReqLine *rql) {
         c = uri[i];
     }
     rql->host[i-7] = '\0';
-        printf("Request Line Host Name: %s\n", rql->host);
+    printf("Request Line Host Name: %s\n", rql->host);
 
     // check if it has a port
     pad = i;
@@ -167,7 +181,7 @@ void parse_uri(char *uri, ReqLine *rql) {
 }
 
 int parse_hdrs(rio_t *riop, ReqHeader *hdrs, char *buf) {
-    printf("In parse_hdrs function\n");
+    // printf("In parse_hdrs function\n");
     int i;
     int lineIndex = 0;
 
@@ -197,7 +211,7 @@ int forward_request(ReqLine *rql, ReqHeader *hdrs, int num_hdrs) {
     int req_size, tmp_len, clientfd;
     short host_exist = 0, userAgent_exist = 0, conn_exist = 0, pconn_exist = 0;
 
-    printf("Before open fd: host(%s), port(%s)\n", rql->host,rql->port);
+    // printf("Before open fd: host(%s), port(%s)\n", rql->host,rql->port);
     clientfd = Open_clientfd(rql->host, rql->port);
     Rio_readinitb(&rio, clientfd);
 
