@@ -34,5 +34,5 @@ typedef struct {
 
 int find_cache(char *method, ReqLine *rql, int fd, WebCache *myCachep);
 int request_cmp(ReqLine *rql1, ReqLine *rql2);
-int write_into_cache(int obj_size, int connfd, char *method, ReqLine *rql, WebCache *myCachep);
+int write_into_cache(int obj_size, char *obuf, char *method, ReqLine *rql, WebCache *myCachep);
 int write_into_fd(HtmlObject *obj, int fd);

@@ -63,7 +63,7 @@ void *thread(void *vargp) {
 
     // close this file descriptor
     Close(connfd);
-    // printf("=============End of one user================\n\n");
+    printf("=============End of one user================\n\n");
 }
 
 /*
@@ -78,7 +78,7 @@ void doit(int fd) {
     int num_hdrs, line_size, connfd;
     int cache_exist = 0, obj_size = 0;
     rio_t rio;
-    char buf[MAXLINE];
+    char buf[102400], *bufp = buf;
 
     // Parse the request and check if it is valid
     parse_request(fd, &request_line, headers, &num_hdrs);
@@ -93,12 +93,13 @@ void doit(int fd) {
 	    // If not in cache, forward the request to server
 	    connfd = forward_request(&request_line, headers, num_hdrs);
 	    Rio_readinitb(&rio, connfd);
-	    while(line_size = Rio_readlineb(&rio, buf, MAXLINE)) {
-	        Rio_writen(fd, buf, line_size);
+	    while(line_size = Rio_readlineb(&rio, bufp, MAXLINE)) {
+	        Rio_writen(fd, bufp, line_size);
 	        obj_size += line_size;
+            bufp += line_size;
 	    }
 
-	    write_into_cache(obj_size, connfd, "GET", &request_line, &myCache);
+	    write_into_cache(obj_size, buf, "GET", &request_line, &myCache);
 	}
 
     Close(connfd);
@@ -123,7 +124,7 @@ void parse_request(int fd, ReqLine *rql, ReqHeader *hdrs, int *num_hdrs) {
     }
     buf[rn+1] = '\0';
     // printf("Get the request line\n");
-    printf("See the buf: %s\n", buf);
+    // printf("See the buf: %s\n", buf);
     // parse request line (GET http://www.abcd.com[:80]/path_str HTTP/1.1)
     sscanf(buf, "%s %s %s", method, uri, version);
     printf("Request Line:%s %s %s\n", method, uri, version);
@@ -156,7 +157,7 @@ void parse_uri(char *uri, ReqLine *rql) {
         c = uri[i];
     }
     rql->host[i-7] = '\0';
-    printf("Request Line Host Name: %s\n", rql->host);
+    // printf("Request Line Host Name: %s\n", rql->host);
 
     // check if it has a port
     pad = i;
@@ -172,7 +173,7 @@ void parse_uri(char *uri, ReqLine *rql) {
         }
     }
     rql->port[i-pad] = '\0';
-    printf("Request Line Port (If have): %s\n", rql->port);
+    // printf("Request Line Port (If have): %s\n", rql->port);
 
     // copy path
     uri += i;

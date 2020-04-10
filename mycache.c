@@ -56,7 +56,7 @@ int write_into_fd(HtmlObject *obj, int fd) {
 
 
 
-int write_into_cache(int obj_size, int connfd, char *method, ReqLine *rql, WebCache *myCachep) {
+int write_into_cache(int obj_size, char *obuf, char *method, ReqLine *rql, WebCache *myCachep) {
 	printf("In the write_into_cache function\n");
 	if (obj_size > MAX_OBJECT_SIZE) return -1;
 	HtmlObject *obj;
@@ -85,15 +85,16 @@ int write_into_cache(int obj_size, int connfd, char *method, ReqLine *rql, WebCa
 		requestLine_copy(&obj->rql, rql);
 		printf("After copy rql\n");
 		obj->size = obj_size;
-		contentp = obj->object;
+		//contentp = obj->object;
 
-		Rio_readinitb(&rio, connfd);
-	    while(line_size = Rio_readlineb(&rio, buf, MAXLINE)) {
-	        strcpy(contentp, buf);
-	        contentp += line_size;
-	    }
-
-	    printf("Before P; obj_size: %d\n", obj_size);
+		//Rio_readinitb(&rio, connfd);
+	    //while(line_size = Rio_readlineb(&rio, buf, MAXLINE)) {
+	    //    strcpy(contentp, buf);
+	    //    contentp += line_size;
+	    //}
+        strcpy(obj->object, obuf);
+	    printf("obj_size: %d\n", obj_size);
+        printf("OBJ Content:\n%s\n", obj->object);
 	    P(&(myCachep->sem));
 	    myCachep->writer_exist = 1;
 	    list_add_before(&(myCachep->head), &obj->object_link);
