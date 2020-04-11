@@ -86,49 +86,49 @@ int write_into_cache(int obj_size, char *obuf, char *method, ReqLine *rql, WebCa
     int line_size;
     char buf[MAXLINE];
 
-    // If the cache is full, we have to replace one of the object
-    // Else we initialize a new object for the incoming HtmlObject
-    if ((obj_size + myCachep->size) > MAX_CACHE_SIZE) {
+    // There is only on thread who can operate on our cache
+    P(&(myCachep->queue_sem));
+        P(&(myCachep->sem));
+    V(&(myCachep->queue_sem));
 
-        // There is only on thread who can operate on our cache
-        // which is a double-linked list.
-        P(&(myCachep->queue_sem));
-            P(&(myCachep->sem));
-        V(&(myCachep->queue_sem));
-
+    // If the cache is full, we have to delete the tail obj of the list
+    // until we have enough space to store this coming obj
+    while ((obj_size + myCachep->size) > MAX_CACHE_SIZE) {
+        
         list_entry_t *le = list_prev(&(myCachep->head));
         obj = le2obj(le, object_link);
         list_del_init(le);
         myCachep->size -= obj->size;
         free(obj);
 
-        V(&(myCachep->sem));
-        return -2;
+    } 
+    V(&(myCachep->sem));
 
-    } else {
-        obj = Malloc(sizeof(HtmlObject));
-        list_init(&obj->object_link);
-        strcpy(obj->method, method);
-        printf("After copy method: %s\n", obj->method);
-        requestLine_copy(&obj->rql, rql);
-        printf("After copy rql\n");
-        obj->size = obj_size;
+    
+    // When there is enough space, we malloc the memory of HtmlObject size
+    // and initialize it (including method, host, port, path and content)
+    obj = Malloc(sizeof(HtmlObject));
+    list_init(&obj->object_link);
+    strcpy(obj->method, method);
+    requestLine_copy(&obj->rql, rql);
+    obj->size = obj_size;
+    strcpy(obj->object, obuf);
 
-        strcpy(obj->object, obuf);
-        printf("obj_size: %d\n", obj_size);
-        printf("OBJ Content:\n%s\n", obj->object);
+    printf("OBJ Content:\n%s\n", obj->object);
 
-        P(&(myCachep->queue_sem));
-            P(&(myCachep->sem));
-        V(&(myCachep->queue_sem));
+    // Only one writer in critical area
+    P(&(myCachep->queue_sem));
+        P(&(myCachep->sem));
+    V(&(myCachep->queue_sem));
 
-        list_add_before(&(myCachep->head), &obj->object_link);
-        myCachep->size += obj_size;
+    // add this new HtmlObject to the list
+    list_add_before(&(myCachep->head), &obj->object_link);
+    myCachep->size += obj_size;
 
-        V(&(myCachep->sem));
+    V(&(myCachep->sem));
 
-        return 1;
-    }
+    return 1;
+    
 }
 
 
