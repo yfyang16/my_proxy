@@ -77,7 +77,7 @@ void *thread(void *vargp) {
 void doit(int fd) {
     ReqLine request_line;
     ReqHeader headers[20];
-    int num_hdrs, line_size, connfd;
+    int num_hdrs, line_size, end_connfd;
     int cache_exist = 0, obj_size = 0;
     rio_t rio;
     char buf[102400], *bufp = buf;
@@ -92,8 +92,9 @@ void doit(int fd) {
 
     if (!cache_exist) {
         // If not in cache, forward the request to server
-        connfd = forward_request(&request_line, headers, num_hdrs);
-        Rio_readinitb(&rio, connfd);
+        printf("No cache found and forward the request to the server.\n");
+        end_connfd = forward_request(&request_line, headers, num_hdrs);
+        Rio_readinitb(&rio, end_connfd);
         while(line_size = Rio_readlineb(&rio, bufp, MAXLINE)) {
             Rio_writen(fd, bufp, line_size);
             obj_size += line_size;
@@ -101,9 +102,9 @@ void doit(int fd) {
         }
 
         write_into_cache(obj_size, buf, "GET", &request_line, &myCache);
+        Close(end_connfd);
     }
 
-    Close(connfd);
 
 
 }

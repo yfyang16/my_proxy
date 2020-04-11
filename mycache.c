@@ -23,8 +23,8 @@
  * our cache when there is enough space.
  */
 int find_cache(char *method, ReqLine *rql, int fd, WebCache *myCachep) {
-    printf("In the find_cache function\n");
-
+    // printf("In the find_cache function\n");
+    int cache_exist = 0;
     P(&(myCachep->queue_sem));
         P(&(myCachep->rdcnt_sem));
             if (myCachep->rdcnt == 0) P(&(myCachep->sem));
@@ -40,7 +40,10 @@ int find_cache(char *method, ReqLine *rql, int fd, WebCache *myCachep) {
 
         if (!request_cmp(&obj->rql, rql)) {
             write_into_fd(obj, fd);
-            return 1;
+            printf("Successfully find the cache and write into fd!\n");
+            printf("But need to leave reader critical area!\n");
+            cache_exist = 1;
+            break;
         }
         le = list_next(le);
     }
@@ -50,9 +53,10 @@ int find_cache(char *method, ReqLine *rql, int fd, WebCache *myCachep) {
         if (myCachep->rdcnt == 0) V(&(myCachep->sem));
     V(&(myCachep->rdcnt_sem));
 
-
+    printf("Successfully leave the reader critical area!\n");
+    
     // If not in cache
-    return 0;
+    return cache_exist;
 }
 
 /* If rql1 == rql2, return 0 else return 1 */
@@ -90,7 +94,8 @@ int write_into_cache(int obj_size, char *obuf, char *method, ReqLine *rql, WebCa
     P(&(myCachep->queue_sem));
         P(&(myCachep->sem));
     V(&(myCachep->queue_sem));
-
+    
+    printf("In the critical area of write_into_cache function\n");
     // If the cache is full, we have to delete the tail obj of the list
     // until we have enough space to store this coming obj
     while ((obj_size + myCachep->size) > MAX_CACHE_SIZE) {
@@ -102,8 +107,6 @@ int write_into_cache(int obj_size, char *obuf, char *method, ReqLine *rql, WebCa
         free(obj);
 
     } 
-    V(&(myCachep->sem));
-
     
     // When there is enough space, we malloc the memory of HtmlObject size
     // and initialize it (including method, host, port, path and content)
@@ -115,11 +118,6 @@ int write_into_cache(int obj_size, char *obuf, char *method, ReqLine *rql, WebCa
     strcpy(obj->object, obuf);
 
     printf("OBJ Content:\n%s\n", obj->object);
-
-    // Only one writer in critical area
-    P(&(myCachep->queue_sem));
-        P(&(myCachep->sem));
-    V(&(myCachep->queue_sem));
 
     // add this new HtmlObject to the list
     list_add_before(&(myCachep->head), &obj->object_link);
