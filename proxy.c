@@ -25,7 +25,9 @@ int main(int argc, char **argv)
     }
 
     list_init(&myCache.head);
-    myCache.writer_exist = 0;
+    myCache.rdcnt = 0;
+    sem_init(&myCache.rdcnt_sem, 0, 1);
+    sem_init(&myCache.queue_sem, 0, 1);
     rs = sem_init(&myCache.sem, 0, 1);
     printf("semaphore created: %d\n", rs);
 
@@ -85,22 +87,21 @@ void doit(int fd) {
 
 
     // If in cache, directly copy the response to fd and return
-    while (myCache.writer_exist == 1);
     cache_exist = find_cache("GET", &request_line, fd, &myCache);
     
 
     if (!cache_exist) {
-	    // If not in cache, forward the request to server
-	    connfd = forward_request(&request_line, headers, num_hdrs);
-	    Rio_readinitb(&rio, connfd);
-	    while(line_size = Rio_readlineb(&rio, bufp, MAXLINE)) {
-	        Rio_writen(fd, bufp, line_size);
-	        obj_size += line_size;
+        // If not in cache, forward the request to server
+        connfd = forward_request(&request_line, headers, num_hdrs);
+        Rio_readinitb(&rio, connfd);
+        while(line_size = Rio_readlineb(&rio, bufp, MAXLINE)) {
+            Rio_writen(fd, bufp, line_size);
+            obj_size += line_size;
             bufp += line_size;
-	    }
+        }
 
-	    write_into_cache(obj_size, buf, "GET", &request_line, &myCache);
-	}
+        write_into_cache(obj_size, buf, "GET", &request_line, &myCache);
+    }
 
     Close(connfd);
 

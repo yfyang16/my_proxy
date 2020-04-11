@@ -14,8 +14,8 @@
 typedef struct {
     int size;
     list_entry_t head;
-    sem_t sem;
-    int writer_exist;
+    sem_t sem, rdcnt_sem, queue_sem;
+    int rdcnt;
 } WebCache;
 
 typedef struct {
