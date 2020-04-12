@@ -21,4 +21,4 @@ proxy.c
 ```
 
 ### Design
-![Aaron Swartz](https://github.com/yyf710670079/my_proxy/img/proxy_design.pdf)
+![Aaron Swartz](https://github.com/yyf710670079/my_proxy/tree/master/img/proxy_design.pdf)
