@@ -7,9 +7,9 @@ void sbuf_init(sbuf_t *sp, int n) {
     sp->front = -1;
     sp->rear = 0;
 
-    sem_init(sp->mutex, 0, 1);
-    sem_init(sp->slots, 0, n);
-    sem_init(sp->items, 0, 0);
+    sem_init(&(sp->mutex), 0, 1);
+    sem_init(&(sp->slots), 0, n);
+    sem_init(&(sp->items), 0, 0);
 }
 
 void sbuf_deinit(sbuf_t *sp) {

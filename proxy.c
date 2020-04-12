@@ -36,9 +36,11 @@ int main(int argc, char **argv)
     printf("semaphore created: %d\n", rs);
 
     sbuf_init(&sbuf, MAX_CLIENT_NUM);
+    printf("thread pool initialization done\n");
     for (int t=0;t<MAX_THREAD_NUM;t++) {
-    	pthread_create(tid, NULL, thread, NULL);
+    	pthread_create(&tid, NULL, thread, NULL);
     }
+    printf("Successfully create the thread pool\n");
 
     listenfd = Open_listenfd(argv[1]);
     while (1) {
@@ -222,7 +224,7 @@ int parse_hdrs(rio_t *riop, ReqHeader *hdrs, char *buf) {
 int forward_request(ReqLine *rql, ReqHeader *hdrs, int num_hdrs) {
     rio_t rio;
     char buf[MAXLINE], *bp = buf;
-    int req_size, tmp_len, clientfd;
+    int req_size = 0, tmp_len, clientfd;
     short host_exist = 0, userAgent_exist = 0, conn_exist = 0, pconn_exist = 0;
 
     // printf("Before open fd: host(%s), port(%s)\n", rql->host,rql->port);

@@ -9,19 +9,24 @@ DISCLAIMER: This sample doesn't care about whether the use of API is correct.
 import sys, random
 from locust import HttpLocust, TaskSet
 
+proxies = {
+  'http': 'http://localhost:53176',
+  'https': 'http://localhost:53176',
+}
+
 def getHome(locust):
     """ define a function in python whose name is getList and the argument is locust """
-    locust.client.get('http://localhost:53177/home.html')
+    locust.client.get('/home.html', proxies=proxies)
     # locust.client.get('/editor/post?action=list&username=cs144')
 
 def getAdder(locust):
     """ define a function in python whose name is previewPage and the argument is locust """
     # postid = random.randint(1, 100) # generate a random number from 1 to 100 (include 1 and 100)
     # url_prefix = '/blog/cs144/';
-    url_prefix = 'http://localhost:53177/cgi-bin/adder?'
+    url_prefix = '/cgi-bin/adder?'
     Adder_a = random.randint(1, 10);
     Adder_b = random.randint(1, 10);
-    locust.client.get(url_prefix + str(Adder_a) + '&' + str(Adder_b), name=url_prefix)
+    locust.client.get(url_prefix + str(Adder_a) + '&' + str(Adder_b), name=url_prefix, proxies=proxies)
 
 class MyTaskSet(TaskSet):
     """ the class MyTaskSet inherits from the class TaskSet, defining the behavior of the user """
