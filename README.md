@@ -22,3 +22,16 @@ proxy.c
 
 ### Design
 ![Aaron Swartz](https://github.com/yyf710670079/my_proxy/raw/master/img/proxy_design.jpg)
+
+### Load Test
+
+Download locust software (Python package)
+```
+pip3 install locust
+```
+
+Use locust
+```
+cd proxy_test
+locust -f locust_test.py --host=http://localhost:<server port>
+```
