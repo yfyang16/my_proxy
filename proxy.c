@@ -7,8 +7,12 @@
  */
 #include <stdio.h>
 #include "proxy.h"
+#include "sbuf.h"
 
 WebCache myCache;
+sbuf_t sbuf;
+
+
 int main(int argc, char **argv)
 {
 
@@ -16,7 +20,7 @@ int main(int argc, char **argv)
     char hostname[MAXLINE], port[MAXLINE];
     socklen_t clientlen;
     struct sockaddr_storage clientaddr;
-    pthread_t *tidp;
+    pthread_t tid;
 
     /* Check command line args */
     if (argc != 2) {
@@ -31,17 +35,22 @@ int main(int argc, char **argv)
     rs = sem_init(&myCache.sem, 0, 1);
     printf("semaphore created: %d\n", rs);
 
+    sbuf_init(&sbuf, MAX_CLIENT_NUM);
+    for (int t=0;t<MAX_THREAD_NUM;t++) {
+    	pthread_create(tid, NULL, thread, NULL);
+    }
 
     listenfd = Open_listenfd(argv[1]);
     while (1) {
-        tidp = Malloc(sizeof(pthread_t));
         connfdp = Malloc(sizeof(int));
         clientlen = sizeof(clientaddr);
         *connfdp = Accept(listenfd, (SA *) &clientaddr, &clientlen); 
         Getnameinfo((SA *) &clientaddr, clientlen, hostname, MAXLINE, port, MAXLINE, 0);
         printf("Accepted connection from (%s, %s)\n", hostname, port);
-        pthread_create(tidp, NULL, thread, connfdp);  
+        sbuf_insert(&sbuf, *connfdp);
     }
+
+    sbuf_deinit(&sbuf);
 }
 
 
@@ -51,21 +60,23 @@ int main(int argc, char **argv)
  *  response to the client.
  */
 void *thread(void *vargp) {
-    int connfd = *((int*)vargp);
-    // printf("Successfully get the connfd: %d\n", connfd);
-
-    // detach this thread in order to let itself reclaim the resources
+	// detach this thread in order to let itself reclaim the resources
     Pthread_detach(pthread_self());
 
-    // After we copy the info from the pointer vargp to the local connfd descriptor,
-    // we free the memory pointed by vargp
-    Free(vargp);
+	while (1) {
+	    int connfd = sbuf_remove(&sbuf);
+	    // printf("Successfully get the connfd: %d\n", connfd);
 
-    doit(connfd);
+	    // After we copy the info from the pointer vargp to the local connfd descriptor,
+	    // we free the memory pointed by vargp
+	    Free(vargp);
 
-    // close this file descriptor
-    Close(connfd);
-    printf("=============End of one user================\n\n");
+	    doit(connfd);
+
+	    // close this file descriptor
+	    Close(connfd);
+	    printf("=============End of one user================\n\n");
+	}
 }
 
 /*
